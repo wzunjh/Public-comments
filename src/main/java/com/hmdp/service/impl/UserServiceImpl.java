@@ -8,6 +8,7 @@ import com.hmdp.mapper.UserMapper;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.RegexPatterns;
 import com.hmdp.utils.RegexUtils;
+import com.hmdp.utils.SmsUtils;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpSession;
@@ -45,22 +46,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
         session.setAttribute("code",code);
 
-        DefaultProfile profile = DefaultProfile.getProfile("cn-hangzhou", "", "");
-
-        IAcsClient client = new DefaultAcsClient(profile);
-
-        SendSmsRequest request = new SendSmsRequest();
-        request.setSignName("Wzunjh");
-        request.setTemplateCode("SMS_257860840");
-        request.setPhoneNumbers(phone);
-        request.setTemplateParam("{\"code\":\""+code+"\"}");
-
-        try {
-            SendSmsResponse response = client.getAcsResponse(request);
-            System.out.println("短信发送成功！");
-        } catch (ServerException e) {
-            e.printStackTrace();
-        }
+        SmsUtils.sendSms(phone,code);   //发送验证码
 
         return Result.ok();
     }
