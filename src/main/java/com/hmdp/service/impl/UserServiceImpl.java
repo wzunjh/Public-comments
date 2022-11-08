@@ -1,10 +1,27 @@
 package com.hmdp.service.impl;
 
+import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.hmdp.dto.Result;
 import com.hmdp.entity.User;
 import com.hmdp.mapper.UserMapper;
 import com.hmdp.service.IUserService;
+import com.hmdp.utils.RegexPatterns;
+import com.hmdp.utils.RegexUtils;
 import org.springframework.stereotype.Service;
+
+import javax.servlet.http.HttpSession;
+
+import com.aliyuncs.DefaultAcsClient;
+import com.aliyuncs.IAcsClient;
+import com.aliyuncs.exceptions.ClientException;
+import com.aliyuncs.exceptions.ServerException;
+import com.aliyuncs.profile.DefaultProfile;
+import com.google.gson.Gson;
+import java.util.*;
+import com.aliyuncs.dysmsapi.model.v20170525.*;
+
+
 
 /**
  * <p>
@@ -17,4 +34,34 @@ import org.springframework.stereotype.Service;
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IUserService {
 
+    @Override
+    public Result sendCode(String phone, HttpSession session) throws ClientException {
+        //校验手机号
+        if (RegexUtils.isPhoneInvalid(phone)) {
+            return Result.fail("手机号格式错误");
+        }
+
+        String code = RandomUtil.randomNumbers(6);
+
+        session.setAttribute("code",code);
+
+        DefaultProfile profile = DefaultProfile.getProfile("cn-hangzhou", "", "");
+
+        IAcsClient client = new DefaultAcsClient(profile);
+
+        SendSmsRequest request = new SendSmsRequest();
+        request.setSignName("Wzunjh");
+        request.setTemplateCode("SMS_257860840");
+        request.setPhoneNumbers(phone);
+        request.setTemplateParam("{\"code\":\""+code+"\"}");
+
+        try {
+            SendSmsResponse response = client.getAcsResponse(request);
+            System.out.println("短信发送成功！");
+        } catch (ServerException e) {
+            e.printStackTrace();
+        }
+
+        return Result.ok();
+    }
 }
