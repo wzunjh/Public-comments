@@ -50,27 +50,38 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
             return Result.fail("优惠券已抢完!");
         }
 
-        boolean success = seckillVoucherService.update().setSql("stock=stock-1").eq("voucher_id",voucherId).gt("stock",0).update();
-
-        if (!success){
-            return Result.fail("抢购失败!");
-        }
-
-        VoucherOrder voucherOrder = new VoucherOrder();
-
-        long orderId = redisIdWorker.nextId("order");
-
-        voucherOrder.setId(orderId);
-
+        //一人一单
         Long userId = UserHolder.getUser().getId();
 
-        voucherOrder.setUserId(userId);
 
-        voucherOrder.setVoucherId(voucherId);
+        //悲观锁
+        synchronized (userId.toString().intern()){
+            int count = Math.toIntExact(query().eq("user_id", userId).eq("voucher_id", voucherId).count());
 
-        save(voucherOrder);
+            if (count > 0){
+                return Result.fail("每人限抢购一单!");
+            }
+
+            boolean success = seckillVoucherService.update().setSql("stock=stock-1").eq("voucher_id",voucherId).gt("stock",0).update();
+
+            if (!success){
+                return Result.fail("抢购失败!");
+            }
+
+            VoucherOrder voucherOrder = new VoucherOrder();
+
+            long orderId = redisIdWorker.nextId("order");
+
+            voucherOrder.setId(orderId);
+
+            voucherOrder.setUserId(userId);
+
+            voucherOrder.setVoucherId(voucherId);
+
+            save(voucherOrder);
 
 
-        return Result.ok(orderId);
+            return Result.ok(orderId);
+        }
     }
 }
