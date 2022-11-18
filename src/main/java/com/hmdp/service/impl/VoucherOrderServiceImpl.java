@@ -50,7 +50,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
             return Result.fail("优惠券已抢完!");
         }
 
-        boolean success = seckillVoucherService.update().setSql("stock=stock-1").eq("voucher_id",voucherId).update();
+        boolean success = seckillVoucherService.update().setSql("stock=stock-1").eq("voucher_id",voucherId).gt("stock",0).update();
 
         if (!success){
             return Result.fail("抢购失败!");
