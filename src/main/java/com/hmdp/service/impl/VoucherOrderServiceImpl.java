@@ -20,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
 import static com.hmdp.utils.RedisConstants.LOCK_ORDER;
 
@@ -42,6 +44,11 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
 
     @Resource
     private StringRedisTemplate stringRedisTemplate;
+
+
+    //创建阻塞队列
+    @Resource
+    private BlockingQueue<VoucherOrder> orderTasks = new ArrayBlockingQueue<>(1024 * 1024);
 
 
     private static final DefaultRedisScript<Long> SECKILL_SCRIPT;
@@ -75,8 +82,15 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         long orderId = redisIdWorker.nextId("order");
 
         //将用户.优惠卷.订单ID保存到阻塞队列
+        VoucherOrder voucherOrder = new VoucherOrder();
 
+        voucherOrder.setId(orderId);
 
+        voucherOrder.setUserId(userId);
+
+        voucherOrder.setVoucherId(voucherId);
+
+        orderTasks.add(voucherOrder);
 
         // 4.返回订单id
         return Result.ok(orderId);
