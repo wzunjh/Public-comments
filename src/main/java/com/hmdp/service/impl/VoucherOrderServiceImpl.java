@@ -11,11 +11,15 @@ import com.hmdp.utils.RedisIdWorker;
 import com.hmdp.utils.UserHolder;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
+import java.util.Collections;
 
 import static com.hmdp.utils.RedisConstants.LOCK_ORDER;
 
@@ -37,68 +41,141 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     private RedisIdWorker redisIdWorker;
 
     @Resource
-    private RedissonClient redissonClient;
+    private StringRedisTemplate stringRedisTemplate;
 
+
+    private static final DefaultRedisScript<Long> SECKILL_SCRIPT;
+
+    static {
+        SECKILL_SCRIPT = new DefaultRedisScript<>();
+        SECKILL_SCRIPT.setLocation(new ClassPathResource("seckill.lua"));
+        SECKILL_SCRIPT.setResultType(Long.class);
+    }
 
     @Override
-    @Transactional
     public Result seckillVoucher(Long voucherId) {
 
-        SeckillVoucher voucher = seckillVoucherService.getById(voucherId);
-
-        if (voucher.getBeginTime().isAfter(LocalDateTime.now())){
-            return Result.fail("秒杀尚未开始!");
-        }
-        if (voucher.getEndTime().isBefore(LocalDateTime.now())){
-            return Result.fail("秒杀已结束!");
-        }
-
-        if (voucher.getStock() < 1){
-            return Result.fail("优惠券已抢完!");
-        }
-
-        //一人一单
         Long userId = UserHolder.getUser().getId();
-
-        //创建锁对象
-        RLock lock = redissonClient.getLock(LOCK_ORDER + userId);
-
-        boolean isLock = lock.tryLock();  //获取锁
-
-        if (!isLock){
-            return Result.fail("不允许重复下单!");
+        // 1.执行lua脚本
+        Long result = stringRedisTemplate.execute(
+                SECKILL_SCRIPT,
+                Collections.emptyList(),
+                voucherId.toString(), userId.toString()
+        );
+        assert result != null;
+        int r = result.intValue();
+        // 2.判断结果是否为0
+        if (r != 0) {
+            // 2.1.不为0 ，代表没有购买资格
+            return Result.fail(r == 1 ? "库存不足" : "不能重复下单!");
         }
 
+        long orderId = redisIdWorker.nextId("order");
 
-        try {
-            int count = Math.toIntExact(query().eq("user_id", userId).eq("voucher_id", voucherId).count());
+        //TODO 保存到阻塞队列
 
-            if (count > 0){
-                return Result.fail("每人限抢购一单!");
-            }
+        // 4.返回订单id
+        return Result.ok(orderId);
 
-            boolean success = seckillVoucherService.update().setSql("stock=stock-1").eq("voucher_id",voucherId).gt("stock",0).update();
 
-            if (!success){
-                return Result.fail("库存不足,抢购失败!");
-            }
-
-            VoucherOrder voucherOrder = new VoucherOrder();
-
-            long orderId = redisIdWorker.nextId("order");
-
-            voucherOrder.setId(orderId);
-
-            voucherOrder.setUserId(userId);
-
-            voucherOrder.setVoucherId(voucherId);
-
-            save(voucherOrder);
-
-            return Result.ok(orderId);
-
-        } finally {
-            lock.unlock();  //释放锁
         }
-    }
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//    @Override
+//    @Transactional
+//    public Result seckillVoucher(Long voucherId) {
+//
+//        SeckillVoucher voucher = seckillVoucherService.getById(voucherId);
+//
+//        if (voucher.getBeginTime().isAfter(LocalDateTime.now())){
+//            return Result.fail("秒杀尚未开始!");
+//        }
+//        if (voucher.getEndTime().isBefore(LocalDateTime.now())){
+//            return Result.fail("秒杀已结束!");
+//        }
+//
+//        if (voucher.getStock() < 1){
+//            return Result.fail("优惠券已抢完!");
+//        }
+//
+//        //一人一单
+//        Long userId = UserHolder.getUser().getId();
+//
+//        //创建锁对象
+//        RLock lock = redissonClient.getLock(LOCK_ORDER + userId);
+//
+//        boolean isLock = lock.tryLock();  //获取锁
+//
+//        if (!isLock){
+//            return Result.fail("不允许重复下单!");
+//        }
+//
+//
+//        try {
+//            int count = Math.toIntExact(query().eq("user_id", userId).eq("voucher_id", voucherId).count());
+//
+//            if (count > 0){
+//                return Result.fail("每人限抢购一单!");
+//            }
+//
+//            boolean success = seckillVoucherService.update().setSql("stock=stock-1").eq("voucher_id",voucherId).gt("stock",0).update();
+//
+//            if (!success){
+//                return Result.fail("库存不足,抢购失败!");
+//            }
+//
+//            VoucherOrder voucherOrder = new VoucherOrder();
+//
+//            long orderId = redisIdWorker.nextId("order");
+//
+//            voucherOrder.setId(orderId);
+//
+//            voucherOrder.setUserId(userId);
+//
+//            voucherOrder.setVoucherId(voucherId);
+//
+//            save(voucherOrder);
+//
+//            return Result.ok(orderId);
+//
+//        } finally {
+//            lock.unlock();  //释放锁
+//        }
+//    }
+
