@@ -1,7 +1,6 @@
 package com.hmdp.service.impl;
 
 import com.hmdp.dto.Result;
-import com.hmdp.entity.SeckillVoucher;
 import com.hmdp.entity.VoucherOrder;
 import com.hmdp.mapper.VoucherOrderMapper;
 import com.hmdp.service.ISeckillVoucherService;
@@ -9,19 +8,18 @@ import com.hmdp.service.IVoucherOrderService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.utils.RedisIdWorker;
 import com.hmdp.utils.UserHolder;
+import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
-import java.time.LocalDateTime;
 import java.util.Collections;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.*;
 
 import static com.hmdp.utils.RedisConstants.LOCK_ORDER;
 
@@ -33,6 +31,7 @@ import static com.hmdp.utils.RedisConstants.LOCK_ORDER;
  * @author 虎哥
  * @since 2021-12-22
  */
+@Slf4j
 @Service
 public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, VoucherOrder> implements IVoucherOrderService {
 
@@ -45,10 +44,77 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
+    @Resource
+    private RedissonClient redissonClient;
+
+
 
     //创建阻塞队列
-    @Resource
-    private BlockingQueue<VoucherOrder> orderTasks = new ArrayBlockingQueue<>(1024 * 1024);
+    private final BlockingQueue<VoucherOrder> orderTasks = new ArrayBlockingQueue<>(1024 * 1024);
+    private static final ExecutorService SECKILL_ORDER_EXECUTOR = Executors.newSingleThreadExecutor();   //创建一个单线程
+
+    @PostConstruct
+    private void init(){
+        SECKILL_ORDER_EXECUTOR.submit(new VoucherOrderHandler());     //类初始化后进行线程提交
+    }
+
+
+    private  class VoucherOrderHandler implements Runnable{
+
+
+        @Override
+        public void run() {
+
+            while (true){
+                try{
+                    VoucherOrder voucherOrder = orderTasks.take(); //获取队列
+                    handleVoucherOrder(voucherOrder);
+                } catch (Exception e) {
+                    log.error("处理订单异常",e);
+                }
+            }
+
+
+        }
+    }
+
+    private void handleVoucherOrder(VoucherOrder voucherOrder) {
+
+        //异步下单
+        //一人一单
+        Long userId = voucherOrder.getUserId();
+
+        Long voucherId = voucherOrder.getVoucherId();
+
+        //创建锁对象
+        RLock lock = redissonClient.getLock(LOCK_ORDER + userId);
+
+        boolean isLock = lock.tryLock();  //获取锁
+
+        if (!isLock) {
+            log.error("不允许重复下单!");
+            return;
+        }
+
+        try {
+            int count = Math.toIntExact(query().eq("user_id", userId).eq("voucher_id", voucherId).count());
+            if (count > 0){
+                log.error("每人限抢购一单!");
+                return;
+            }
+
+            boolean success = seckillVoucherService.update().setSql("stock=stock-1").eq("voucher_id",voucherId).gt("stock",0).update();
+
+            if (!success){
+                log.error("库存不足,抢购失败!");
+                return;
+            }
+            //创建订单
+            save(voucherOrder);
+        } finally {
+            lock.unlock();
+        }
+    }
 
 
     private static final DefaultRedisScript<Long> SECKILL_SCRIPT;
