@@ -74,7 +74,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         //下单成功,生成订单ID
         long orderId = redisIdWorker.nextId("order");
 
-        //将用户ID和优惠卷ID保存到阻塞队列
+        //将用户.优惠卷.订单ID保存到阻塞队列
 
 
 
