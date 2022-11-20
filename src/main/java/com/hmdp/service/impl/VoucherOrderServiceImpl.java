@@ -62,17 +62,21 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                 Collections.emptyList(),
                 voucherId.toString(), userId.toString()
         );
+
         assert result != null;
         int r = result.intValue();
-        // 2.判断结果是否为0
+
+        // 2.判断结果是否为0,不为0代表没有购买资格
         if (r != 0) {
-            // 2.1.不为0 ，代表没有购买资格
             return Result.fail(r == 1 ? "库存不足" : "不能重复下单!");
         }
 
+        //下单成功,生成订单ID
         long orderId = redisIdWorker.nextId("order");
 
-        //TODO 保存到阻塞队列
+        //将用户ID和优惠卷ID保存到阻塞队列
+
+
 
         // 4.返回订单id
         return Result.ok(orderId);
