@@ -61,7 +61,7 @@ public class UserController {
     public Result logout(){
         // TODO 实现登出功能
         UserHolder.removeUser();
-        return Result.ok();
+        return Result.ok("账号退出成功");
     }
 
     @GetMapping("/me")
