@@ -10,7 +10,7 @@ public class HmDianPingApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(HmDianPingApplication.class, args);
-        System.out.println("大众点评项目启动成功......");
+        System.out.println("hmdp is running.......");
     }
 
 }
