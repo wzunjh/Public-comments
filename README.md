@@ -3,35 +3,16 @@
 #### 介绍
 前后端分离开发的大众点评小程序。重点是基于redis解决高并发问题。
 
-#### 软件架构
-软件架构说明
+#### 说明
 
+前端来自黑马程序员的黑马点评，这里只开源后端
 
-#### 安装教程
+#### 页面展示
+| ![输入图片说明](src/main/resources/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202023-01-17%20232820.png)  | ![输入图片说明](src/main/resources/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202023-01-17%20232927.png)  |
+|---|---|
+| ![输入图片说明](src/main/resources/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202023-01-17%20232950.png)  |  ![输入图片说明](src/main/resources/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202023-01-17%20233011.png) |
+| ![输入图片说明](src/main/resources/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202023-01-17%20233258.png)  | ![输入图片说明](src/main/resources/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202023-01-17%20233354.png)  |
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+| ![输入图片说明](src/main/resources/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202023-01-17%20221906.png) |
+|--|
 
-#### 使用说明
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### 参与贡献
-
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
-
-
-#### 特技
-
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  Gitee 官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解 Gitee 上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是 Gitee 最有价值开源项目，是综合评定出的优秀开源项目
-5.  Gitee 官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  Gitee 封面人物是一档用来展示 Gitee 会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
