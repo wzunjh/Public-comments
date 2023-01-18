@@ -7,6 +7,9 @@ import org.redisson.config.Config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * @author 27877
+ */
 @Configuration
 public class RedissonConfig {
 
