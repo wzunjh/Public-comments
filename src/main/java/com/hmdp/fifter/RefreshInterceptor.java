@@ -14,6 +14,9 @@ import javax.servlet.http.HttpServletResponse;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * @author 27877
+ */
 public class RefreshInterceptor implements HandlerInterceptor {
 
     private final StringRedisTemplate stringRedisTemplate;
@@ -24,7 +27,7 @@ public class RefreshInterceptor implements HandlerInterceptor {
     }
 
     @Override
-    public boolean preHandle(HttpServletRequest request, @NotNull HttpServletResponse response, @NotNull Object handler) throws Exception {
+    public boolean preHandle(HttpServletRequest request, @NotNull HttpServletResponse response, @NotNull Object handler) {
 
         String token = request.getHeader("authorization");
 
