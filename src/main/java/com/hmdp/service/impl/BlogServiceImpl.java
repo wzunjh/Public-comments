@@ -103,6 +103,11 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
 
         // 1.获取当前用户id
         Long userId = UserHolder.getUser().getId();
+
+        if(userId == null){
+            return Result.fail("请先登录!");
+        }
+
         // 2. 判断是否点赞过
         String key = BLOG_LIKED_KEY +id;
         Double score = stringRedisTemplate.opsForZSet().score(key, userId.toString());
@@ -112,7 +117,8 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
             boolean isSuccess = update().setSql("liked=liked + 1").eq("id",id).update();
 
             if (isSuccess){
-                stringRedisTemplate.opsForZSet().add(key,userId.toString(),System.currentTimeMillis());   //按点赞时间排序
+                //按点赞时间排序
+                stringRedisTemplate.opsForZSet().add(key,userId.toString(),System.currentTimeMillis());
             }
 
         }else {
