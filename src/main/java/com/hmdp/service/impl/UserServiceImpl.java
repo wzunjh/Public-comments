@@ -11,15 +11,21 @@ import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.User;
 import com.hmdp.mapper.UserMapper;
 import com.hmdp.service.IUserService;
+import com.hmdp.utils.RedisConstants;
 import com.hmdp.utils.RegexUtils;
 import com.hmdp.utils.SmsUtils;
+import com.hmdp.utils.UserHolder;
+import org.springframework.data.redis.connection.BitFieldSubCommands;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpSession;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -95,6 +101,75 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
        stringRedisTemplate.expire(tokenKey,LOGIN_USER_TTL,TimeUnit.MINUTES);
 
        return Result.ok(token);
+    }
+
+    @Override
+    public Result sign() {
+
+        //1.获取当前用户Id
+        Long userId = UserHolder.getUser().getId();
+
+        //2.获取日期
+        LocalDateTime dateTime = LocalDateTime.now();
+
+        //拼接key
+        String format = dateTime.format(DateTimeFormatter.ofPattern(":yyyyMM"));
+
+        String key = USER_SIGN_KEY+userId+format;
+
+        int dayOfMonth = dateTime.getDayOfMonth();
+
+        stringRedisTemplate.opsForValue().setBit(key,dayOfMonth-1, true);
+
+        return Result.ok();
+    }
+
+    @Override
+    public Result jntm() {
+
+        //1.获取当前用户Id
+        Long userId = UserHolder.getUser().getId();
+
+        //2.获取日期
+        LocalDateTime dateTime = LocalDateTime.now();
+
+        //拼接key
+        String format = dateTime.format(DateTimeFormatter.ofPattern(":yyyyMM"));
+
+        String key = USER_SIGN_KEY+userId+format;
+
+        int dayOfMonth = dateTime.getDayOfMonth();
+
+        List<Long> list = stringRedisTemplate.opsForValue().bitField(
+                key,
+                //子命令行，get u dayOfMonth offset 从第0位开始的共dayOfMonth长度的bit
+                BitFieldSubCommands.create()
+                        .get(BitFieldSubCommands.BitFieldType.unsigned(dayOfMonth))
+                        .valueAt(0));
+
+        if (list == null || list.isEmpty()){
+            return Result.ok(0);
+        }
+
+        //返回的是一个十进制的数
+        Long num = list.get(0);
+        if (num == 0){
+            return Result.ok(0);
+        }
+
+        int count = 0; //计数器
+
+        while (true){
+
+            if ((num & 1) ==0){
+                break;
+            }else{
+                count ++;
+            }
+                num >>>= 1;
+        }
+
+        return Result.ok(count);
     }
 
     private User creatUserWithPhone(String phone) {

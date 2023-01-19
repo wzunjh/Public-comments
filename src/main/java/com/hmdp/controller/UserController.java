@@ -105,4 +105,26 @@ public class UserController {
         return Result.ok(userDTO);
     }
 
+    /*
+    *
+    * 用户签到功能
+    *
+    * */
+    @PostMapping("/sign")
+    public Result sign(){
+        return userService.sign();
+    }
+
+    /*
+    *
+    * 统计用户连续签到天数
+    *
+    * */
+    @GetMapping("/jntm")
+    public Result jntm(){
+        return userService.jntm();
+    }
+
+
+
 }
