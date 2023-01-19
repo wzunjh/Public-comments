@@ -61,5 +61,33 @@ class HmDianPingApplicationTests {
 
     }
 
+    /*
+    *
+    * HyperLogLog百万数据UV统计
+    *
+    * */
+    @Test
+    void HyperLog(){
+
+        String [] value = new String[1000];
+
+        int j =0;
+        for (int i=0; i<100000;i++){
+            j = i%1000;
+
+            value[j] = "user_id" + i;
+            if (j == 999){
+                stringRedisTemplate.opsForHyperLogLog().add("hl",value);
+            }
+
+        }
+
+        Long size = stringRedisTemplate.opsForHyperLogLog().size("hl");
+        System.out.println("size = "+size);
+
+
+    }
+
+
 
 }
