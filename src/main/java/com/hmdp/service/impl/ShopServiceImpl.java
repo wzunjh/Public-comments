@@ -197,16 +197,18 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
             return Result.ok(Collections.emptyList());
         }
 
+        //id和距离的类
         List<GeoResult<RedisGeoCommands.GeoLocation<String>>> list = results.getContent();
 
         //截取from部分
         List<Long> ids = new ArrayList<>(list.size());
         Map<String,Distance> distanceMap = new HashMap<>(list.size());
 
+        //如果数量不至于进入下一页就返回空
         if (list.size() <= from){
             return Result.ok(Collections.emptyList());
         }
-
+        //采用跳跃式遍历提取出shopIds和distance
         list.stream().skip(from).forEach(result ->{
 
             String shopIdStr = result.getContent().getName();
@@ -215,9 +217,11 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
             distanceMap.put(shopIdStr,distance);
         });
 
+        //根据ids查询店铺信息
         String idStr = StrUtil.join(",",ids);
         List<Shop> shops = query().in("id", ids).last("ORDER BY FIELD(id," + idStr + ")").list();
 
+        //存入distance的距离信息
         for (Shop shop : shops){
             shop.setDistance(distanceMap.get(shop.getId().toString()).getValue());
         }
